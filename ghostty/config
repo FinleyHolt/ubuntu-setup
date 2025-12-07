@@ -1,0 +1,71 @@
+########################################
+#  Ghostty Config — Clean + Draggable  #
+#  Catppuccin Macchiato + No Tab Bar   #
+########################################
+
+###############
+# Appearance  #
+###############
+
+# Built-in Catppuccin theme
+theme = "Catppuccin Macchiato"
+
+# Slight transparency like your old WezTerm setup
+background-opacity = 0.93
+
+# Padding (comfortable, similar to wezterm feel)
+window-padding-x = 6
+window-padding-y = 4
+window-padding-balance = true
+
+
+###############
+# Window / UI #
+###############
+
+# Ensure Ghostty draws the titlebar so you can drag/tile the window
+window-decoration = auto
+
+# Apply Ghostty’s own colors to the titlebar (not GNOME’s white)
+window-theme = ghostty
+
+# Titlebar background/foreground (wezterm-style)
+window-titlebar-background = #24273A
+window-titlebar-foreground = #C6D0F5
+
+# Hide the tab bar completely (removes the extra bar with just an X)
+gtk-tabs-location = hidden
+
+
+###############
+# Fonts       #
+###############
+
+font-family = "JetBrainsMono NF"
+font-size = 12.0
+
+
+###############
+# Behavior    #
+###############
+
+# Large scrollback buffer (100MB)
+scrollback-limit = 104857600
+
+# Don’t hide the mouse while typing
+mouse-hide-while-typing = false
+
+# Smart scroll behavior
+scroll-to-bottom = keystroke, no-output
+
+# Keep one process per window
+quit-after-last-window-closed = true
+
+
+###############
+# Shell       #
+###############
+
+command = /usr/bin/zsh
+
+keybind = shift+enter=text:\x1b\r
