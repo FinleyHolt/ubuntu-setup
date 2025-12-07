@@ -649,7 +649,7 @@ echo -e "${GREEN}║            Setup Complete! 🎉                            
 echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
-echo "  1. REBOOT your system to apply all changes (especially power management)"
+echo "  1. REBOOT your system to apply all changes"
 echo "  2. Open Neovim and run :checkhealth to verify everything works"
 echo "  3. Configure Git with your credentials:"
 echo "       git config --global user.name \"Your Name\""
