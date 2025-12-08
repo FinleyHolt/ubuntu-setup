@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ################################################################################
-# Ubuntu 24.04 Setup Script
-# Automated setup for a fresh Ubuntu 24.04 installation
+# Linux Setup Script
+# Automated setup for fresh Linux installations (Ubuntu/Fedora)
 # This script installs and configures all essential tools and applications
 # Safe to run multiple times - will skip already installed components
 ################################################################################
@@ -30,14 +30,97 @@ print_warning() {
 # Get the directory where this script is located
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+################################################################################
+# Detect Distribution
+################################################################################
+
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    DISTRO=$ID
+    DISTRO_VERSION=$VERSION_ID
+else
+    print_error "Cannot detect Linux distribution"
+    exit 1
+fi
+
+# Normalize distro name
+case "$DISTRO" in
+    ubuntu)
+        DISTRO="ubuntu"
+        PKG_MGR="apt"
+        ;;
+    fedora)
+        DISTRO="fedora"
+        PKG_MGR="dnf"
+        ;;
+    *)
+        print_error "Unsupported distribution: $DISTRO"
+        echo "This script supports Ubuntu and Fedora only."
+        exit 1
+        ;;
+esac
+
+################################################################################
+# Package Management Wrapper Functions
+################################################################################
+
+pkg_update() {
+    case "$PKG_MGR" in
+        apt)
+            sudo apt update
+            ;;
+        dnf)
+            sudo dnf check-update || true
+            ;;
+    esac
+}
+
+pkg_upgrade() {
+    case "$PKG_MGR" in
+        apt)
+            sudo apt upgrade -y
+            ;;
+        dnf)
+            sudo dnf upgrade -y
+            ;;
+    esac
+}
+
+pkg_install() {
+    case "$PKG_MGR" in
+        apt)
+            sudo apt install -y "$@"
+            ;;
+        dnf)
+            sudo dnf install -y "$@"
+            ;;
+    esac
+}
+
+pkg_clean() {
+    case "$PKG_MGR" in
+        apt)
+            sudo apt autoremove -y
+            sudo apt autoclean
+            ;;
+        dnf)
+            sudo dnf autoremove -y
+            sudo dnf clean all
+            ;;
+    esac
+}
+
 echo -e "${GREEN}"
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║        Ubuntu 24.04 Development Setup Script            ║"
+echo "║           Linux Development Setup Script                ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
+echo -e "Detected distribution: ${GREEN}$DISTRO $DISTRO_VERSION${NC}"
+echo -e "Package manager: ${GREEN}$PKG_MGR${NC}"
+echo ""
 
 # Confirm with user
-read -p "This will set up your Ubuntu 24.04 system. Continue? (y/n) " -n 1 -r
+read -p "This will set up your $DISTRO system. Continue? (y/n) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Setup cancelled."
@@ -49,29 +132,42 @@ fi
 ################################################################################
 
 print_step "Updating system packages..."
-sudo apt update
-sudo apt upgrade -y
+pkg_update
+pkg_upgrade
 
 print_step "Installing essential build tools and dependencies..."
-sudo apt install -y \
-    build-essential \
-    git \
-    git-lfs \
-    curl \
-    wget \
-    unzip \
-    ca-certificates \
-    gnupg \
-    lsb-release \
-    software-properties-common \
-    apt-transport-https
+if [ "$DISTRO" = "ubuntu" ]; then
+    pkg_install \
+        build-essential \
+        git \
+        git-lfs \
+        curl \
+        wget \
+        unzip \
+        ca-certificates \
+        gnupg \
+        lsb-release \
+        software-properties-common \
+        apt-transport-https
+elif [ "$DISTRO" = "fedora" ]; then
+    pkg_install \
+        @development-tools \
+        git \
+        git-lfs \
+        curl \
+        wget \
+        unzip \
+        ca-certificates \
+        gnupg2 \
+        redhat-lsb-core
+fi
 
 ################################################################################
 # 2. Zsh and Oh My Zsh Setup
 ################################################################################
 
 print_step "Installing Zsh..."
-sudo apt install -y zsh
+pkg_install zsh
 
 print_step "Installing Oh My Zsh..."
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
@@ -120,9 +216,15 @@ fi
 
 print_step "Installing Ghostty terminal..."
 if ! command -v ghostty &> /dev/null; then
-    # Install Ghostty using the community .deb package installer
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh)"
-    print_step "Ghostty installed successfully"
+    if [ "$DISTRO" = "ubuntu" ]; then
+        # Install Ghostty using the community .deb package installer
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh)"
+    elif [ "$DISTRO" = "fedora" ]; then
+        # For Fedora, we'll need to build from source or use a COPR repo
+        print_warning "Ghostty installation on Fedora requires manual installation"
+        print_warning "Please visit: https://ghostty.org for installation instructions"
+    fi
+    print_step "Ghostty installation completed or skipped"
 else
     print_step "Ghostty is already installed"
 fi
@@ -140,22 +242,39 @@ fi
 
 print_step "Installing Neovim..."
 if ! command -v nvim &> /dev/null; then
-    sudo snap install --classic nvim
+    if [ "$DISTRO" = "ubuntu" ]; then
+        sudo snap install --classic nvim
+    elif [ "$DISTRO" = "fedora" ]; then
+        pkg_install neovim
+    fi
 fi
 
 # Install Python support for Neovim
-sudo apt install -y python3 python3-pip python3-venv
+print_step "Installing Python development tools..."
+if [ "$DISTRO" = "ubuntu" ]; then
+    pkg_install python3 python3-pip python3-venv
+elif [ "$DISTRO" = "fedora" ]; then
+    pkg_install python3 python3-pip python3-virtualenv
+fi
 
 # Install Node.js (required for many LSP servers)
 print_step "Installing Node.js..."
 if ! command -v node &> /dev/null; then
-    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-    sudo apt install -y nodejs
+    if [ "$DISTRO" = "ubuntu" ]; then
+        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+        pkg_install nodejs
+    elif [ "$DISTRO" = "fedora" ]; then
+        pkg_install nodejs npm
+    fi
 fi
 
 # Install ripgrep, fd, and xclip (for Telescope and clipboard support)
 print_step "Installing ripgrep, fd-find, and xclip..."
-sudo apt install -y ripgrep fd-find xclip
+if [ "$DISTRO" = "ubuntu" ]; then
+    pkg_install ripgrep fd-find xclip
+elif [ "$DISTRO" = "fedora" ]; then
+    pkg_install ripgrep fd-find xclip
+fi
 
 # Install Rust (required for some Neovim plugins)
 if ! command -v rustc &> /dev/null; then
@@ -199,13 +318,19 @@ nvim --headless "+Lazy! sync" +qa 2>/dev/null || true
 
 print_step "Installing Visual Studio Code..."
 if ! command -v code &> /dev/null; then
-    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
-    sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
-    sudo sh -c 'echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list'
-    rm -f packages.microsoft.gpg
-
-    sudo apt update
-    sudo apt install -y code
+    if [ "$DISTRO" = "ubuntu" ]; then
+        wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
+        sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
+        sudo sh -c 'echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list'
+        rm -f packages.microsoft.gpg
+        pkg_update
+        pkg_install code
+    elif [ "$DISTRO" = "fedora" ]; then
+        sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+        sudo sh -c 'echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/vscode.repo'
+        pkg_update
+        pkg_install code
+    fi
 fi
 
 print_step "Installing VS Code extensions..."
@@ -298,10 +423,18 @@ fi
 ################################################################################
 
 print_step "Installing GNOME Extension Manager..."
-sudo apt install -y gnome-shell-extension-manager
+if [ "$DISTRO" = "ubuntu" ]; then
+    pkg_install gnome-shell-extension-manager
+elif [ "$DISTRO" = "fedora" ]; then
+    pkg_install gnome-extensions-app
+fi
 
 print_step "Installing chrome-gnome-shell for browser integration..."
-sudo apt install -y chrome-gnome-shell
+if [ "$DISTRO" = "ubuntu" ]; then
+    pkg_install chrome-gnome-shell
+elif [ "$DISTRO" = "fedora" ]; then
+    pkg_install chrome-gnome-shell
+fi
 
 print_step "Installing gnome-extensions-cli for automated extension installation..."
 if ! command -v gnome-extensions-cli &> /dev/null; then
@@ -423,8 +556,12 @@ fi
 ################################################################################
 
 print_step "Setting up Flatpak..."
-sudo apt install -y flatpak
-sudo apt install -y gnome-software-plugin-flatpak
+if [ "$DISTRO" = "ubuntu" ]; then
+    pkg_install flatpak gnome-software-plugin-flatpak
+elif [ "$DISTRO" = "fedora" ]; then
+    # Flatpak is usually pre-installed on Fedora Workstation
+    pkg_install flatpak
+fi
 sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 print_step "Installing Flatpak applications..."
@@ -436,37 +573,46 @@ flatpak install -y flathub net.ankiweb.Anki
 
 print_step "Installing Docker..."
 if ! command -v docker &> /dev/null; then
-    # Add Docker's official GPG key
-    sudo install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    if [ "$DISTRO" = "ubuntu" ]; then
+        # Add Docker's official GPG key
+        sudo install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-    # Set up the repository
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        # Set up the repository
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-    sudo apt update
-    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        pkg_update
+        pkg_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    elif [ "$DISTRO" = "fedora" ]; then
+        # Install Docker from official Fedora repos or Docker repo
+        pkg_install dnf-plugins-core
+        sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+        pkg_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        sudo systemctl start docker
+        sudo systemctl enable docker
+    fi
 
     # Add user to docker group
     sudo usermod -aG docker "$USER"
 fi
 
 print_step "Installing LaTeX..."
-sudo apt install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex
+if [ "$DISTRO" = "ubuntu" ]; then
+    pkg_install texlive-latex-extra texlive-fonts-recommended texlive-xetex
+elif [ "$DISTRO" = "fedora" ]; then
+    pkg_install texlive-scheme-medium texlive-xetex
+fi
 
 print_step "Installing additional utilities..."
-sudo apt install -y \
-    tmux \
-    tree \
-    htop \
-    btop \
-    jq \
-    fzf \
-    tldr \
-    imagemagick
+if [ "$DISTRO" = "ubuntu" ]; then
+    pkg_install tmux tree htop btop jq fzf tldr imagemagick
+elif [ "$DISTRO" = "fedora" ]; then
+    pkg_install tmux tree htop btop jq fzf tldr ImageMagick
+fi
 
 ################################################################################
 # 12.5. Cheat - Command-line Cheatsheets
@@ -474,7 +620,13 @@ sudo apt install -y \
 
 print_step "Installing cheat for command-line cheatsheets..."
 if ! command -v cheat &> /dev/null; then
-    sudo snap install cheat
+    if [ "$DISTRO" = "ubuntu" ]; then
+        sudo snap install cheat
+    elif [ "$DISTRO" = "fedora" ]; then
+        # On Fedora, install from COPR or use Go
+        print_warning "Cheat not available via standard repos on Fedora"
+        print_warning "You can install manually from: https://github.com/cheat/cheat"
+    fi
 fi
 
 print_step "Configuring cheat..."
@@ -546,57 +698,84 @@ print_step "Python syntax reference: cheat python"
 
 print_step "Installing Google Chrome..."
 if ! command -v google-chrome &> /dev/null; then
-    cd /tmp
-    wget -q --show-progress https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-    sudo apt install -y ./google-chrome-stable_current_amd64.deb
-    rm google-chrome-stable_current_amd64.deb
-    cd "$DOTFILES_DIR"
+    if [ "$DISTRO" = "ubuntu" ]; then
+        cd /tmp
+        wget -q --show-progress https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        pkg_install ./google-chrome-stable_current_amd64.deb
+        rm google-chrome-stable_current_amd64.deb
+        cd "$DOTFILES_DIR"
+    elif [ "$DISTRO" = "fedora" ]; then
+        cd /tmp
+        wget -q --show-progress https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+        pkg_install ./google-chrome-stable_current_x86_64.rpm
+        rm google-chrome-stable_current_x86_64.rpm
+        cd "$DOTFILES_DIR"
+    fi
 fi
 
 print_step "Installing Microsoft Edge..."
 if ! command -v microsoft-edge &> /dev/null; then
-    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /usr/share/keyrings/microsoft-edge.gpg > /dev/null
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-edge.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge.list
-    sudo apt update
-    sudo apt install -y microsoft-edge-stable
+    if [ "$DISTRO" = "ubuntu" ]; then
+        curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /usr/share/keyrings/microsoft-edge.gpg > /dev/null
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-edge.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge.list
+        pkg_update
+        pkg_install microsoft-edge-stable
+    elif [ "$DISTRO" = "fedora" ]; then
+        sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+        sudo dnf config-manager --add-repo https://packages.microsoft.com/yumrepos/edge
+        pkg_install microsoft-edge-stable
+    fi
 fi
 
 print_step "Installing Discord..."
 if ! command -v discord &> /dev/null; then
-    cd /tmp
-    wget -q --show-progress "https://discord.com/api/download?platform=linux&format=deb" -O discord.deb
-    sudo apt install -y ./discord.deb
-    rm discord.deb
-    cd "$DOTFILES_DIR"
+    if [ "$DISTRO" = "ubuntu" ]; then
+        cd /tmp
+        wget -q --show-progress "https://discord.com/api/download?platform=linux&format=deb" -O discord.deb
+        pkg_install ./discord.deb
+        rm discord.deb
+        cd "$DOTFILES_DIR"
+    elif [ "$DISTRO" = "fedora" ]; then
+        cd /tmp
+        wget -q --show-progress "https://discord.com/api/download?platform=linux&format=tar.gz" -O discord.tar.gz
+        sudo tar -xzf discord.tar.gz -C /opt
+        sudo ln -sf /opt/Discord/Discord /usr/bin/discord
+        rm discord.tar.gz
+        cd "$DOTFILES_DIR"
+    fi
 fi
 
 print_step "Installing Spotify..."
 if ! command -v spotify &> /dev/null; then
-    # Import all Spotify GPG keys
-    curl -sS https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/spotify.gpg
-    curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/spotify-2.gpg 2>/dev/null || true
-    curl -sS https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.gpg | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/spotify-3.gpg 2>/dev/null || true
-    echo "deb http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
-    sudo apt update
-    sudo apt install -y spotify-client
+    # Use Flatpak for both distributions (simpler and more reliable)
+    flatpak install -y flathub com.spotify.Client
 fi
 
 print_step "Installing Signal..."
 if ! command -v signal-desktop &> /dev/null; then
-    wget -qO- https://updates.signal.org/desktop/apt/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/signal-desktop-keyring.gpg > /dev/null
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/signal-desktop-keyring.gpg] https://updates.signal.org/desktop/apt xenial main" | sudo tee /etc/apt/sources.list.d/signal-xenial.list
-    sudo apt update
-    sudo apt install -y signal-desktop
+    if [ "$DISTRO" = "ubuntu" ]; then
+        wget -qO- https://updates.signal.org/desktop/apt/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/signal-desktop-keyring.gpg > /dev/null
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/signal-desktop-keyring.gpg] https://updates.signal.org/desktop/apt xenial main" | sudo tee /etc/apt/sources.list.d/signal-xenial.list
+        pkg_update
+        pkg_install signal-desktop
+    elif [ "$DISTRO" = "fedora" ]; then
+        # Use Flatpak for Signal on Fedora
+        flatpak install -y flathub org.signal.Signal
+    fi
 fi
 
 print_step "Installing Obsidian..."
 if ! command -v obsidian &> /dev/null; then
-    cd /tmp
-    # Get the latest version from GitHub releases
-    wget -q --show-progress "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.7.7/obsidian_1.7.7_amd64.deb" -O obsidian.deb
-    sudo apt install -y ./obsidian.deb
-    rm obsidian.deb
-    cd "$DOTFILES_DIR"
+    if [ "$DISTRO" = "ubuntu" ]; then
+        cd /tmp
+        wget -q --show-progress "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.7.7/obsidian_1.7.7_amd64.deb" -O obsidian.deb
+        pkg_install ./obsidian.deb
+        rm obsidian.deb
+        cd "$DOTFILES_DIR"
+    elif [ "$DISTRO" = "fedora" ]; then
+        # Use Flatpak for Obsidian on Fedora
+        flatpak install -y flathub md.obsidian.Obsidian
+    fi
 fi
 
 ################################################################################
@@ -665,12 +844,11 @@ fi
 ################################################################################
 
 print_step "Running final system update..."
-sudo apt update
-sudo apt upgrade -y
+pkg_update
+pkg_upgrade
 
 print_step "Cleaning up..."
-sudo apt autoremove -y
-sudo apt autoclean
+pkg_clean
 
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════════════╗${NC}"

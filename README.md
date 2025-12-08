@@ -1,11 +1,16 @@
-# Ubuntu Setup
+# Linux Setup
 
-Automated setup script for Ubuntu 24.04 with development tools and dotfiles.
+Automated setup script for Linux distributions (Ubuntu and Fedora) with development tools and dotfiles.
+
+## Supported Distributions
+- **Ubuntu 24.04+** (via APT)
+- **Fedora Workstation** (via DNF)
 
 ## Table of Contents
 - [Screenshots](#screenshots)
 - [Quick Start](#quick-start)
 - [What Gets Installed](#what-gets-installed)
+- [Distribution-Specific Notes](#distribution-specific-notes)
 
 ## Screenshots
 
@@ -51,11 +56,13 @@ Add the key to GitHub:
 ### 3. Clone and run setup
 
 ```bash
-git clone git@github.com:yourusername/ubuntu-setup.git
-cd ubuntu-setup
-chmod +x setup-ubuntu.sh
-./setup-ubuntu.sh
+git clone git@github.com:yourusername/linux-setup.git
+cd linux-setup
+chmod +x setup-linux.sh
+./setup-linux.sh
 ```
+
+The script will automatically detect your distribution (Ubuntu or Fedora) and install packages accordingly.
 
 ### 4. Post-installation
 
@@ -70,14 +77,51 @@ After the script completes:
 
 ## What Gets Installed
 
-- Zsh with Oh My Zsh and plugins
-- JetBrainsMono Nerd Font
-- Ghostty terminal
-- Neovim with plugins
-- VS Code with extensions
-- GNOME extensions (Blur My Shell, Dash to Dock)
-- Micromamba for Python environments
-- Docker
-- LaTeX
-- Google Chrome, Edge, Discord, Spotify, Signal, Obsidian
-- Additional utilities (tmux, fzf, btop, etc.)
+### Core Tools
+- **Zsh** with Oh My Zsh and plugins (syntax highlighting, autosuggestions)
+- **JetBrainsMono Nerd Font** for terminal use
+- **Ghostty terminal** (Ubuntu only - manual installation required for Fedora)
+- **Neovim** with full plugin setup
+- **VS Code** with curated extensions
+
+### Development Tools
+- **Micromamba** for Python environment management
+- **Docker** with Docker Compose
+- **Node.js** (LTS version)
+- **Rust** toolchain
+- **LaTeX** distribution
+- **Git** with Git LFS
+
+### GNOME Desktop Enhancements
+- GNOME Extension Manager
+- Blur My Shell
+- Dash to Dock
+- Custom Hot Corners
+
+### Applications
+- **Browsers**: Google Chrome, Microsoft Edge
+- **Communication**: Discord, Signal, Spotify
+- **Productivity**: Obsidian, Anki
+- **Utilities**: tmux, fzf, btop, htop, ripgrep, fd-find, tldr, cheat
+
+## Distribution-Specific Notes
+
+### Ubuntu
+- Uses `apt` package manager
+- Neovim installed via snap
+- Most applications installed from official `.deb` packages
+- Ghostty installed via community installer
+
+### Fedora
+- Uses `dnf` package manager
+- Neovim installed from official repos
+- Some applications installed via Flatpak (Spotify, Signal, Obsidian)
+- Ghostty requires manual installation (see https://ghostty.org)
+- Cheat tool requires manual installation
+
+### Package Manager Differences
+The script automatically handles differences between distributions:
+- **Build tools**: `build-essential` (Ubuntu) vs `@development-tools` (Fedora)
+- **Python packages**: `python3-venv` (Ubuntu) vs `python3-virtualenv` (Fedora)
+- **Image processing**: `imagemagick` (Ubuntu) vs `ImageMagick` (Fedora)
+- **Docker**: Different repository setup for each distribution
