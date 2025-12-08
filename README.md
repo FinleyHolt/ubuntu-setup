@@ -1,14 +1,17 @@
 # Linux Setup
 
-Automated setup script for Linux distributions (Ubuntu and Fedora) with development tools and dotfiles.
+Automated setup script for Linux distributions (Ubuntu and Fedora) with development tools and dotfiles. Supports both full desktop installations and minimal WSL2 setups.
 
 ## Supported Distributions
 - **Ubuntu 24.04+** (via APT)
 - **Fedora Workstation** (via DNF)
+- **WSL2** (Ubuntu or Fedora)
 
 ## Table of Contents
 - [Screenshots](#screenshots)
 - [Quick Start](#quick-start)
+- [Setup Modes](#setup-modes)
+- [Modular Architecture](#modular-architecture)
 - [What Gets Installed](#what-gets-installed)
 - [Distribution-Specific Notes](#distribution-specific-notes)
 
@@ -58,51 +61,130 @@ Add the key to GitHub:
 ```bash
 git clone git@github.com:yourusername/linux-setup.git
 cd linux-setup
-chmod +x setup-linux.sh
-./setup-linux.sh
+chmod +x setup.sh
+./setup.sh
 ```
 
-The script will automatically detect your distribution (Ubuntu or Fedora) and install packages accordingly.
+The script will automatically detect your distribution (Ubuntu or Fedora) and environment (native Linux or WSL2) and present appropriate setup options.
 
 ### 4. Post-installation
 
 After the script completes:
 
-1. Log out and log back in for shell changes to take effect
+1. Log out and log back in for shell changes to take effect (or reboot for full desktop installs)
 2. Configure Git credentials:
    ```bash
    git config --global user.name "Your Name"
    git config --global user.email "your.email@example.com"
    ```
 
+## Setup Modes
+
+The master script ([setup.sh](setup.sh)) offers three setup modes:
+
+### 1. Full Desktop (Recommended for native Linux)
+Installs everything: shell, dev tools, GUI apps, GNOME extensions, and desktop customization.
+
+### 2. WSL2 Minimal (Recommended for WSL2)
+Terminal-focused setup with:
+- Zsh and dotfiles
+- Neovim with full configuration
+- CLI utilities (tmux, fzf, ripgrep, etc.)
+- Claude Code CLI
+- Optional: Micromamba, Docker
+
+Skips: GUI apps, GNOME extensions, Ghostty, VS Code
+
+### 3. Custom
+Pick and choose individual modules to install.
+
+## Modular Architecture
+
+The setup is organized into focused modules for easier maintenance and flexibility:
+
+### Module Structure
+```
+linux-setup/
+├── setup.sh              # Master orchestration script
+├── modules/
+│   ├── common.sh         # Shared utilities and functions
+│   ├── core.sh           # Essential packages and system updates
+│   ├── shell.sh          # Zsh, Oh My Zsh, dotfiles, fonts
+│   ├── dev-tools.sh      # Neovim, Docker, LaTeX, Micromamba, CLI tools
+│   ├── desktop.sh        # GUI apps, GNOME extensions, customization
+│   └── wsl.sh            # WSL2-specific minimal setup
+```
+
+### Running Individual Modules
+
+You can run modules independently:
+
+```bash
+# Install just the shell configuration
+./modules/shell.sh
+
+# Install just Neovim and dev tools
+./modules/dev-tools.sh
+
+# Install just desktop components
+./modules/desktop.sh
+```
+
+Each module sources `common.sh` for shared functionality and can be executed standalone.
+
 ## What Gets Installed
 
-### Core Tools
-- **Zsh** with Oh My Zsh and plugins (syntax highlighting, autosuggestions)
+### Core Module ([modules/core.sh](modules/core.sh))
+- System updates and essential build tools
+- Git and Git LFS
+- curl, wget, unzip
+- Distribution-specific development packages
+
+### Shell Module ([modules/shell.sh](modules/shell.sh))
+- **Zsh** with Oh My Zsh
+- Zsh plugins (syntax highlighting, autosuggestions)
 - **JetBrainsMono Nerd Font** for terminal use
-- **Ghostty terminal** (Ubuntu only - manual installation required for Fedora)
-- **Neovim** with full plugin setup
-- **VS Code** with curated extensions
+- Dotfiles symlinked from repository
 
-### Development Tools
-- **Micromamba** for Python environment management
+### Dev Tools Module ([modules/dev-tools.sh](modules/dev-tools.sh))
+Individual functions for selective installation:
+- **Neovim** with full plugin setup (via Lazy.nvim)
+  - Includes: Python, Node.js, Rust, ripgrep, fd-find, xclip
 - **Docker** with Docker Compose
-- **Node.js** (LTS version)
-- **Rust** toolchain
-- **LaTeX** distribution
-- **Git** with Git LFS
+- **LaTeX** distribution (texlive)
+- **Micromamba** for Python environment management
+- **CLI utilities**: tmux, tree, htop, btop, jq, fzf, tldr, imagemagick
+- **Cheat** - command-line cheatsheets
+- **Claude Code CLI** and claude-history
 
-### GNOME Desktop Enhancements
-- GNOME Extension Manager
-- Blur My Shell
-- Dash to Dock
-- Custom Hot Corners
+### Desktop Module ([modules/desktop.sh](modules/desktop.sh))
+Only installed on full desktop setups:
+- **Ghostty terminal** with configuration (Ubuntu - manual for Fedora)
+- **VS Code** with curated extensions and theme
+- **GNOME Extensions**:
+  - Extension Manager
+  - Blur My Shell
+  - Dash to Dock (customized)
+  - Custom Hot Corners
+- **Flatpak** with Flathub
+- **GUI Applications**:
+  - Browsers: Google Chrome, Microsoft Edge
+  - Communication: Discord, Signal
+  - Media: Spotify (Flatpak)
+  - Productivity: Obsidian, Anki
+- **Desktop Customization**:
+  - Wallpaper configuration
+  - Dock favorites
+  - Yaru-blue theme
 
-### Applications
-- **Browsers**: Google Chrome, Microsoft Edge
-- **Communication**: Discord, Signal, Spotify
-- **Productivity**: Obsidian, Anki
-- **Utilities**: tmux, fzf, btop, htop, ripgrep, fd-find, tldr, cheat
+### WSL2 Module ([modules/wsl.sh](modules/wsl.sh))
+Minimal terminal-focused setup:
+- Core system packages
+- Shell configuration
+- Neovim and CLI utilities
+- Claude Code CLI
+- Optional: Micromamba, Docker
+- WSL2-specific Git configuration
 
 ## Distribution-Specific Notes
 
