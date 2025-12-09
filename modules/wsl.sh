@@ -40,13 +40,6 @@ setup_wsl() {
         setup_micromamba
     fi
 
-    # Optionally install Docker (useful if you want to run containers from WSL2)
-    read -p "Install Docker? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        setup_docker
-    fi
-
     print_section "WSL2-Specific Configuration"
 
     print_step "Configuring WSL2 Git credential helper..."

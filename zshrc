@@ -3,6 +3,9 @@ export ZSH="$HOME/.oh-my-zsh"
 export EDITOR=nvim
 export VISUAL=nvim
 
+# Add ~/.local/bin to PATH for locally installed tools (claude, etc.)
+export PATH="$HOME/.local/bin:$PATH"
+
 ZSH_THEME=""
 
 plugins=(
