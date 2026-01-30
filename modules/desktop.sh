@@ -147,11 +147,13 @@ setup_gnome_extensions() {
     ~/.local/bin/gext install blur-my-shell@aunetx 2>/dev/null || true
     ~/.local/bin/gext install dash-to-dock@micxgx.gmail.com 2>/dev/null || true
     ~/.local/bin/gext install custom-hot-corners-extended@G-dH.github.com 2>/dev/null || true
+    ~/.local/bin/gext install caffeine@pataber.gmail.com 2>/dev/null || true
 
     print_step "Enabling GNOME extensions..."
     gnome-extensions enable blur-my-shell@aunetx 2>/dev/null || true
     gnome-extensions enable dash-to-dock@micxgx.gmail.com 2>/dev/null || true
     gnome-extensions enable custom-hot-corners-extended@G-dH.github.com 2>/dev/null || true
+    gnome-extensions enable caffeine@pataber.gmail.com 2>/dev/null || true
 
     print_step "Configuring Custom Hot Corners..."
     # Set bottom-right corner to toggle overview

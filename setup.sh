@@ -76,18 +76,20 @@ fi
 
 case $SETUP_MODE in
     1)
+        # Save SCRIPT_DIR before sourcing modules (modules overwrite SCRIPT_DIR)
+        SETUP_DIR="$SCRIPT_DIR"
         if is_wsl; then
             # WSL2 minimal setup
             print_section "Starting WSL2 Minimal Setup"
-            source "$SCRIPT_DIR/modules/wsl.sh"
+            source "$SETUP_DIR/modules/wsl.sh"
             setup_wsl
         else
             # Full desktop setup
             print_section "Starting Full Desktop Setup"
-            source "$SCRIPT_DIR/modules/core.sh"
-            source "$SCRIPT_DIR/modules/shell.sh"
-            source "$SCRIPT_DIR/modules/dev-tools.sh"
-            source "$SCRIPT_DIR/modules/desktop.sh"
+            source "$SETUP_DIR/modules/core.sh"
+            source "$SETUP_DIR/modules/shell.sh"
+            source "$SETUP_DIR/modules/dev-tools.sh"
+            source "$SETUP_DIR/modules/desktop.sh"
 
             setup_core
             setup_shell
@@ -96,14 +98,16 @@ case $SETUP_MODE in
         fi
         ;;
     2)
+        # Save SCRIPT_DIR before sourcing modules (modules overwrite SCRIPT_DIR)
+        SETUP_DIR="$SCRIPT_DIR"
         if is_wsl; then
             # Full desktop on WSL2 (unusual)
             print_section "Starting Full Desktop Setup on WSL2"
             print_warning "Note: This is uncommon for WSL2 environments"
-            source "$SCRIPT_DIR/modules/core.sh"
-            source "$SCRIPT_DIR/modules/shell.sh"
-            source "$SCRIPT_DIR/modules/dev-tools.sh"
-            source "$SCRIPT_DIR/modules/desktop.sh"
+            source "$SETUP_DIR/modules/core.sh"
+            source "$SETUP_DIR/modules/shell.sh"
+            source "$SETUP_DIR/modules/dev-tools.sh"
+            source "$SETUP_DIR/modules/desktop.sh"
 
             setup_core
             setup_shell
@@ -112,9 +116,9 @@ case $SETUP_MODE in
         else
             # Server/minimal setup
             print_section "Starting Server/Minimal Setup"
-            source "$SCRIPT_DIR/modules/core.sh"
-            source "$SCRIPT_DIR/modules/shell.sh"
-            source "$SCRIPT_DIR/modules/dev-tools.sh"
+            source "$SETUP_DIR/modules/core.sh"
+            source "$SETUP_DIR/modules/shell.sh"
+            source "$SETUP_DIR/modules/dev-tools.sh"
 
             setup_core
             setup_shell
@@ -154,12 +158,14 @@ case $SETUP_MODE in
     3)
         # Custom module selection
         print_section "Custom Module Selection"
-        source "$SCRIPT_DIR/modules/core.sh"
-        source "$SCRIPT_DIR/modules/shell.sh"
-        source "$SCRIPT_DIR/modules/dev-tools.sh"
+        # Save SCRIPT_DIR before sourcing modules (modules overwrite SCRIPT_DIR)
+        SETUP_DIR="$SCRIPT_DIR"
+        source "$SETUP_DIR/modules/core.sh"
+        source "$SETUP_DIR/modules/shell.sh"
+        source "$SETUP_DIR/modules/dev-tools.sh"
 
         if ! is_wsl; then
-            source "$SCRIPT_DIR/modules/desktop.sh"
+            source "$SETUP_DIR/modules/desktop.sh"
         fi
 
         # Core is always installed
