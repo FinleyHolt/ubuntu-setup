@@ -36,4 +36,7 @@ return {
   require('plugins.cmake-tools'),       -- CMake generate/build/run
   require('plugins.markdown-preview'),  -- Live markdown preview in browser
 
+  -- AI
+  require('plugins.claudecode'),        -- Claude Code CLI integration
+
 }

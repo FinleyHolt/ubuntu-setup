@@ -100,10 +100,22 @@ Space f t                    Find TODOs (Telescope)
 
 Space m p                    Toggle markdown preview (opens in browser)
 
+# ==================== AI / CLAUDE ====================
+
+# Claude Code (claudecode.nvim) — requires `claude` CLI
+Space a c                    Toggle Claude Code terminal
+Space a f                    Focus Claude Code
+Space a r                    Resume previous conversation
+Space a m                    Select model
+Space a b                    Add current buffer to context
+Space a s                    Send selection to Claude (visual mode)
+Space a a                    Accept diff from Claude
+Space a d                    Deny diff from Claude
+
 # ==================== WHICH-KEY ====================
 
 # Press Space and wait — popup shows all available keybindings
-# Groups: c=Code/CMake  d=Debug  g=Git  m=Markdown  t=Terminal  x=Diagnostics  f=Find
+# Groups: a=AI/Claude  c=Code/CMake  d=Debug  g=Git  m=Markdown  t=Terminal  x=Diagnostics  f=Find
 
 # ==================== LSP (works automatically per language) ====================
 
